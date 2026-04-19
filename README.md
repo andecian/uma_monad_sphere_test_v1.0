@@ -1,5 +1,4 @@
 # uma_monad_sphere_test_v1.0
-UMA Monad Sphere (Test)
 
 ## Overview
 This is a dynamic 3D sphere simulation tool based on the **UMA Monad Theory** proposed by Hirofumi Miyauchi. By manipulating the sliders for the additive circle (Cx) and multiplicative circle (Cy), users can visually and mathematically observe how the existence quantity (Cz) fluctuates.
