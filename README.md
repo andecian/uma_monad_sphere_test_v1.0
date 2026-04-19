@@ -13,7 +13,7 @@ The current behavior of this simulation may be experimental or slightly irregula
 - **Phase Identification**: Automatically describes the current state (e.g., UMA Monad, Pole of Presence, Equator) based on the variables.
 
 ## Usage
-1. Download the `uma_monad_sphere_text_vX.X.html` file.
+1. Download the `uma_monad_sphere_text_vx.x.html` file.
 2. Open it in a modern web browser (e.g., Chrome, Safari, Firefox) to run the explorer locally.
 
 ## License
