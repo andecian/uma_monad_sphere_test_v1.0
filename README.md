@@ -20,4 +20,4 @@ The current behavior of this simulation may be experimental or slightly irregula
 This project is licensed under the **MIT License**. You are free to use, modify, and redistribute the code.
 
 ## References
-- Miyauchi, H. (2026). *The UMA Monad Theory.* doi:10.5281/zenodo.19608684
+- Miyauchi, H. (2026). *The UMA Monad Theory.* doi:[10.5281/zenodo.19608684](https://doi.org/10.5281/zenodo.19608684)
