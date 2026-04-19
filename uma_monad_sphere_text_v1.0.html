@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UMA Monad Sphere Explorer</title>
+<style>
+:root {
+  --bg:       #f6f5f1;
+  --surface:  #ffffff;
+  --surface2: #eeede9;
+  --border:   rgba(0,0,0,0.10);
+  --border2:  rgba(0,0,0,0.06);
+  --text:     #1c1c1a;
+  --muted:    #888880;
+  --hint:     #b0b0a8;
+  --cx-color: #c94f28;
+  --cy-color: #2272c3;
+  --cz-color: #0f8c63;
+  --pp-color: #1a4fa0;
+  --radius:   10px;
+  --radius-sm: 6px;
+  --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #141412;
+    --surface:  #1e1e1c;
+    --surface2: #252523;
+    --border:   rgba(255,255,255,0.10);
+    --border2:  rgba(255,255,255,0.05);
+    --text:     #edecea;
+    --muted:    #888880;
+    --hint:     #505048;
+  }
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Georgia', 'Times New Roman', serif;
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem;
+}
+.wrap { max-width: 860px; margin: 0 auto; }
+
+/* header */
+.header { margin-bottom: 2rem; }
+.header h1 {
+  font-size: 22px; font-weight: 400; letter-spacing: 0.02em;
+  margin-bottom: 4px;
+}
+.header p {
+  font-size: 13px; color: var(--muted);
+  font-family: var(--mono);
+}
+
+/* layout */
+.layout { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+@media (max-width: 640px) { .layout { grid-template-columns: 1fr; } }
+
+/* panel */
+.panel {}
+
+/* equation box */
+.eq-box {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 1.5rem;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+/* sliders */
+.slider-group { margin-bottom: 1.4rem; }
+.slider-label {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-bottom: 6px;
+}
+.slider-label .name {
+  font-size: 13px; color: var(--muted); font-family: var(--mono);
+}
+.slider-label .value {
+  font-size: 15px; font-weight: 400; font-family: var(--mono);
+  min-width: 60px; text-align: right;
+}
+.slider-label .value.cx { color: var(--cx-color); }
+.slider-label .value.cy { color: var(--cy-color); }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%; height: 2px;
+  background: var(--border);
+  border-radius: 1px; outline: none; cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+#cx-slider::-webkit-slider-thumb { background: var(--cx-color); }
+#cy-slider::-webkit-slider-thumb { background: var(--cy-color); }
+
+.slider-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--hint); margin-top: 3px; font-family: var(--mono); }
+
+/* output card */
+.out-card {
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 12px;
+}
+.out-card .out-label { font-size: 11px; color: var(--hint); font-family: var(--mono); margin-bottom: 4px; }
+.out-card .out-big { font-size: 32px; font-weight: 400; font-family: var(--mono); color: var(--cz-color); letter-spacing: -0.01em; }
+.out-card .out-state { font-size: 13px; color: var(--muted); margin-top: 6px; font-family: 'Georgia', serif; font-style: italic; }
+
+/* presence bar */
+.bar-wrap {
+  margin-top: 10px; height: 4px;
+  border-radius: 2px; background: var(--surface2); overflow: hidden;
+}
+#presence-bar { height: 100%; width: 50%; transition: width 0.06s, background 0.06s; }
+.bar-ends { display: flex; justify-content: space-between; font-size: 10px; color: var(--hint); margin-top: 3px; font-family: var(--mono); }
+
+/* metrics grid */
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.metric {
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.metric .m-label { font-size: 10px; color: var(--hint); font-family: var(--mono); margin-bottom: 3px; }
+.metric .m-val { font-size: 14px; font-family: var(--mono); }
+.metric .m-val.cx { color: var(--cx-color); }
+.metric .m-val.cy { color: var(--cy-color); }
+
+/* verify box */
+.verify {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 1.2rem;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.75;
+  white-space: pre;
+}
+
+/* preset buttons */
+.presets-label { font-size: 11px; color: var(--hint); font-family: var(--mono); margin-bottom: 6px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+.presets button {
+  font-size: 11px; font-family: var(--mono);
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+.presets button:hover { background: var(--surface2); color: var(--text); }
+
+/* canvas side */
+.canvas-side { position: sticky; top: 2rem; }
+canvas {
+  display: block; width: 100%; max-width: 340px;
+  margin: 0 auto; border-radius: var(--radius);
+}
+.legend {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  font-size: 11px; color: var(--muted);
+  font-family: var(--mono); margin-top: 10px;
+  padding: 0 4px;
+}
+.legend span { display: flex; align-items: center; gap: 5px; }
+.leg-line { width: 14px; height: 1.5px; display: inline-block; }
+.leg-dot  { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+/* footer */
+.footer {
+  margin-top: 2.5rem;
+  font-size: 11px; color: var(--hint); font-family: var(--mono);
+  border-top: 0.5px solid var(--border2);
+  padding-top: 1rem;
+}
+.footer a { color: var(--muted); text-decoration: none; }
+.footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="header">
+    <h1>UMA Monad Sphere Explorer</h1>
+    <p>Move Cx (additive circle) and Cy (multiplicative circle) — observe Cz (existence quantity)</p>
+  </header>
+
+  <div class="layout">
+
+    <!-- LEFT: controls -->
+    <div class="panel">
+
+      <div class="eq-box">Sphere constraint: Cx² + Cy² + Cz² = 1
+Point P = (Cx, Cy, Cz) lies on the unit sphere
+Cz = ±√(1 − Cx² − Cy²)  [sign set by θ]</div>
+
+      <!-- Cx slider -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="name">Cx — additive circle</span>
+          <span class="value cx" id="cx-display">0.000</span>
+        </div>
+        <input type="range" id="cx-slider" min="-1" max="1" step="0.005" value="0.5" />
+        <div class="slider-ends"><span>−1 (absence)</span><span>0 (UMA)</span><span>+1 (presence)</span></div>
+      </div>
+
+      <!-- Cy slider -->
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="name">Cy — multiplicative circle</span>
+          <span class="value cy" id="cy-display">0.000</span>
+        </div>
+        <input type="range" id="cy-slider" min="-1" max="1" step="0.005" value="0.5" />
+        <div class="slider-ends"><span>−1 (absence)</span><span>0 (UMA)</span><span>+1 (presence)</span></div>
+      </div>
+
+      <!-- Cz output -->
+      <div class="out-card">
+        <div class="out-label">Cz — existence quantity (output)</div>
+        <div class="out-big" id="cz-display">—</div>
+        <div class="out-state" id="cz-state">—</div>
+        <div class="bar-wrap"><div id="presence-bar"></div></div>
+        <div class="bar-ends"><span>−1 absence</span><span>0 equilibrium</span><span>+1 presence</span></div>
+      </div>
+
+      <!-- Cx / Cy readback -->
+      <div class="metrics">
+        <div class="metric">
+          <div class="m-label">Cx (computed)</div>
+          <div class="m-val cx" id="cx-out">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Cy (computed)</div>
+          <div class="m-val cy" id="cy-out">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Point P</div>
+          <div class="m-val" id="point-p" style="font-size:11px;">—</div>
+        </div>
+        <div class="metric">
+          <div class="m-label">Symmetric P'</div>
+          <div class="m-val" id="point-pp" style="font-size:11px; color:var(--pp-color);">—</div>
+        </div>
+      </div>
+
+      <!-- verification -->
+      <div class="verify" id="verify-box">—</div>
+
+      <!-- presets -->
+      <div class="presets-label">preset points</div>
+      <div class="presets">
+        <button onclick="setXY(0, 0)">C (0, 0) — UMA Monad</button>
+        <button onclick="setXY(0.707, 0.0)">Cx=1 axis</button>
+        <button onclick="setXY(0.0, 0.707)">Cy=1 axis</button>
+        <button onclick="setXY(0.5, 0.5)">equilibrium (½,½)</button>
+        <button onclick="setXY(-0.5, 0.5)">2nd quadrant</button>
+        <button onclick="setXY(0.5, -0.5)">4th quadrant</button>
+        <button onclick="setXY(-0.707, -0.0)">Cx=−1 axis</button>
+        <button onclick="setXY(0.0, -0.707)">Cy=−1 axis</button>
+      </div>
+
+    </div>
+
+    <!-- RIGHT: sphere canvas -->
+    <div class="canvas-side">
+      <canvas id="sphere" width="340" height="340"
+        role="img"
+        aria-label="3D visualization of the UMA Monad sphere. Point P moves as Cx and Cy change; Cz is the vertical axis.">
+      </canvas>
+      <div class="legend">
+        <span><span class="leg-line" style="background:var(--cx-color);"></span>Cx additive</span>
+        <span><span class="leg-line" style="background:var(--cy-color);"></span>Cy multiplicative</span>
+        <span><span class="leg-line" style="background:var(--cz-color); border-top: 1px dashed var(--cz-color); height:0;"></span>Cz existence</span>
+        <span><span class="leg-dot" style="background:var(--cx-color);"></span>P</span>
+        <span><span class="leg-dot" style="background:var(--pp-color);"></span>P'</span>
+      </div>
+    </div>
+
+  </div>
+
+  <footer class="footer">
+    Based on: Miyauchi, H. (2026). <em>The UMA Monad Theory.</em>
+    <a href="https://doi.org/10.5281/zenodo.19608684" target="_blank">doi:10.5281/zenodo.19608684</a>
+    &nbsp;·&nbsp; Standalone HTML — no external dependencies
+  </footer>
+
+</div><!-- /wrap -->
+
+<script>
+/* ── canvas setup ─────────────────────────────────── */
+const CV = document.getElementById('sphere');
+const ct = CV.getContext('2d');
+const W = 340, H = 340, OX = W/2, OY = H/2, RAD = 128;
+
+function toRad(d) { return d * Math.PI / 180; }
+
+/* oblique projection: rotate Y then X */
+function proj(x3, y3, z3) {
+  const ay = toRad(32), ax = toRad(22);
+  const x1 = x3 * Math.cos(ay) + z3 * Math.sin(ay);
+  const y1 = y3;
+  const z1 = -x3 * Math.sin(ay) + z3 * Math.cos(ay);
+  const y2 = y1 * Math.cos(ax) - z1 * Math.sin(ax);
+  return { px: OX + x1 * RAD, py: OY - y2 * RAD };
+}
+
+/* draw a great circle given its normal vector */
+function drawGreatCircle(nx, ny, nz, color, dash) {
+  /* find two orthogonal vectors in the plane */
+  let ux, uy, uz;
+  if (Math.abs(nx) < 0.9) { ux=0; uy=-nz; uz=ny; }
+  else                     { ux=-nz; uy=0; uz=nx; }
+  const ul = Math.hypot(ux, uy, uz);
+  ux/=ul; uy/=ul; uz/=ul;
+  /* v = n × u */
+  const vx = ny*uz - nz*uy;
+  const vy = nz*ux - nx*uz;
+  const vz = nx*uy - ny*ux;
+
+  ct.beginPath();
+  ct.strokeStyle = color;
+  ct.lineWidth = 1.4;
+  ct.setLineDash(dash ? [5,4] : []);
+  for (let i = 0; i <= 120; i++) {
+    const t = (i/120) * Math.PI * 2;
+    const c = Math.cos(t), s = Math.sin(t);
+    const p = proj(c*ux+s*vx, c*uy+s*vy, c*uz+s*vz);
+    i === 0 ? ct.moveTo(p.px, p.py) : ct.lineTo(p.px, p.py);
+  }
+  ct.stroke();
+  ct.setLineDash([]);
+}
+
+/* ── core math ───────────────────────────────────── */
+/*
+  The user controls Cx ∈ [−1,1] and Cy ∈ [−1,1] directly.
+  We clamp so Cx²+Cy² ≤ 1, then Cz = +√(1−Cx²−Cy²).
+  A separate θ sign-toggle lets the user flip Cz to negative.
+*/
+let czSign = 1;  /* +1 or −1, toggled by button */
+
+function clampToDisk(cx, cy) {
+  const r2 = cx*cx + cy*cy;
+  if (r2 <= 1) return { cx, cy };
+  const r = Math.sqrt(r2);
+  return { cx: cx/r, cy: cy/r };
+}
+
+function computePoint(cxRaw, cyRaw) {
+  const { cx, cy } = clampToDisk(cxRaw, cyRaw);
+  const cz = czSign * Math.sqrt(Math.max(0, 1 - cx*cx - cy*cy));
+  return { cx, cy, cz };
+}
+
+/* ── state description ───────────────────────────── */
+function stateDesc(cz, cx, cy) {
+  const r = Math.hypot(cx, cy);
+  if (r < 0.01)          return 'UMA Monad — absolute zero point, Universe C stable';
+  if (Math.abs(cz) > 0.99) return cz > 0 ? 'Pole of Presence — Universe A (Cz = +1)' : 'Pole of Absence — Universe E (Cz = −1)';
+  if (Math.abs(cz) < 0.03) return 'Equator — Cz ≈ 0, maximum Universe C fluctuation';
+  if (Math.abs(cz - 0.5) < 0.03) return 'Semi-presence boundary — Universe B / D (Cz ≈ ½)';
+  if (cz > 0.7)  return 'Presence dominant — near Universe A';
+  if (cz > 0)    return 'Weak presence — Universe B side';
+  if (cz > -0.7) return 'Weak absence — Universe D side';
+  return 'Absence dominant — near Universe E';
+}
+
+/* ── render ──────────────────────────────────────── */
+function render(cx, cy, cz) {
+  const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const txClr  = dark ? 'rgba(255,255,255,0.38)' : 'rgba(0,0,0,0.35)';
+  const sphFill= dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)';
+  const sphStr = dark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.10)';
+  const lineClr= dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.10)';
+
+  ct.clearRect(0, 0, W, H);
+
+  /* sphere */
+  ct.beginPath(); ct.arc(OX, OY, RAD, 0, Math.PI*2);
+  ct.fillStyle = sphFill; ct.fill();
+  ct.strokeStyle = sphStr; ct.lineWidth = 1; ct.stroke();
+
+  /* great circles: normals along each axis */
+  drawGreatCircle(0, 1, 0, getComputedStyle(document.documentElement).getPropertyValue('--cx-color').trim() || '#c94f28', false);
+  drawGreatCircle(1, 0, 0, getComputedStyle(document.documentElement).getPropertyValue('--cy-color').trim() || '#2272c3', false);
+  drawGreatCircle(0, 0, 1, getComputedStyle(document.documentElement).getPropertyValue('--cz-color').trim() || '#0f8c63', true);
+
+  /* P and P' */
+  const pP  = proj( cx,  cy,  cz);
+  const pPp = proj(-cx, -cy, -cz);
+  const pC  = proj(0, 0, 0);
+
+  /* line P—C—P' */
+  ct.beginPath(); ct.moveTo(pP.px, pP.py); ct.lineTo(pPp.px, pPp.py);
+  ct.strokeStyle = lineClr; ct.lineWidth = 0.8; ct.setLineDash([2,2]); ct.stroke();
+  ct.setLineDash([]);
+
+  /* center C */
+  ct.beginPath(); ct.arc(pC.px, pC.py, 4, 0, Math.PI*2);
+  ct.fillStyle = dark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.40)'; ct.fill();
+
+  /* P' */
+  ct.beginPath(); ct.arc(pPp.px, pPp.py, 5, 0, Math.PI*2);
+  ct.fillStyle = '#1a4fa0'; ct.fill();
+
+  /* P */
+  ct.beginPath(); ct.arc(pP.px, pP.py, 8, 0, Math.PI*2);
+  ct.fillStyle = '#c94f28'; ct.fill();
+
+  /* axis labels */
+  ct.font = '10.5px SF Mono, Fira Code, monospace';
+  ct.fillStyle = txClr;
+  const labels = [
+    { v:[1,0,0], t:'1:0:0' }, { v:[-1,0,0], t:'-1:0:0' },
+    { v:[0,1,0], t:'0:1:0' }, { v:[0,-1,0], t:'0:-1:0' },
+    { v:[0,0,1], t:'0:0:1' }, { v:[0,0,-1], t:'0:0:-1' }
+  ];
+  labels.forEach(({ v, t }) => {
+    const p = proj(v[0], v[1], v[2]);
+    ct.beginPath(); ct.arc(p.px, p.py, 2, 0, Math.PI*2);
+    ct.fillStyle = txClr; ct.fill();
+    ct.fillText(t, p.px + 5, p.py - 2);
+  });
+
+  /* P label */
+  ct.font = '12px Georgia, serif';
+  ct.fillStyle = '#c94f28';
+  ct.fillText('P', pP.px + 10, pP.py - 5);
+  ct.fillStyle = '#1a4fa0';
+  ct.fillText("P'", pPp.px + 7, pPp.py - 5);
+  ct.fillStyle = txClr;
+  ct.fillText('C', pC.px + 6, pC.py - 5);
+}
+
+/* ── UI update ───────────────────────────────────── */
+function update() {
+  const cxRaw = parseFloat(document.getElementById('cx-slider').value);
+  const cyRaw = parseFloat(document.getElementById('cy-slider').value);
+  const { cx, cy, cz } = computePoint(cxRaw, cyRaw);
+
+  /* clamp feedback: if sliders exceed unit disk, show clamped value */
+  document.getElementById('cx-display').textContent = cxRaw.toFixed(3);
+  document.getElementById('cy-display').textContent = cyRaw.toFixed(3);
+  document.getElementById('cx-out').textContent = cx.toFixed(4);
+  document.getElementById('cy-out').textContent = cy.toFixed(4);
+
+  document.getElementById('cz-display').textContent = cz.toFixed(4);
+  document.getElementById('cz-state').textContent   = stateDesc(cz, cx, cy);
+
+  const bar = document.getElementById('presence-bar');
+  bar.style.width      = ((cz + 1) / 2 * 100).toFixed(1) + '%';
+  bar.style.background = cz >= 0 ? '#0f8c63' : '#c94f28';
+
+  document.getElementById('point-p').textContent  = `(${cx.toFixed(3)}, ${cy.toFixed(3)}, ${cz.toFixed(3)})`;
+  document.getElementById('point-pp').textContent = `(${(-cx).toFixed(3)}, ${(-cy).toFixed(3)}, ${(-cz).toFixed(3)})`;
+
+  const sum = (cx*cx + cy*cy + cz*cz).toFixed(8);
+  document.getElementById('verify-box').textContent =
+    `Cx = ${cx.toFixed(6)}\n` +
+    `Cy = ${cy.toFixed(6)}\n` +
+    `Cz = ${cz.toFixed(6)}\n` +
+    `─────────────────────\n` +
+    `Cx²+Cy²+Cz² = ${sum}`;
+
+  render(cx, cy, cz);
+}
+
+/* ── preset helper ───────────────────────────────── */
+function setXY(cx, cy) {
+  document.getElementById('cx-slider').value = cx;
+  document.getElementById('cy-slider').value = cy;
+  update();
+}
+
+/* ── event listeners ─────────────────────────────── */
+document.getElementById('cx-slider').addEventListener('input', update);
+document.getElementById('cy-slider').addEventListener('input', update);
+
+/* initialise */
+update();
+</script>
+</body>
+</html>
